@@ -1,5 +1,7 @@
 package com.bharath.cart.entity;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -27,6 +29,8 @@ public class CartProductDetails {
 	private Integer cartProductQuantity;
 	private Float subTotal;
 	private Long productId;
+	private LocalDateTime addedAt;
+	private Float discount;
 	@ManyToOne(cascade = CascadeType.ALL)
 	@JoinColumn(name = "cart_id", unique = false)
 	private Cart cart;

@@ -12,6 +12,8 @@ import com.bharath.cart.entity.Cart;
 import com.bharath.cart.entity.CartProductDetails;
 import com.bharath.cart.exception.CartServiceException;
 import com.bharath.cart.model.AddToCartProductRequest;
+import com.bharath.cart.model.ViewCartProductResponse;
+import com.bharath.cart.model.ViewCartResponse;
 import com.bharath.cart.model.ViewProductResponse;
 import com.bharath.cart.repository.CartProductRepository;
 import com.bharath.cart.repository.CartRepository;
@@ -56,13 +58,18 @@ public class CartServiceImpl implements CartService {
 
 		if (cartProduct.isPresent())
 			throw new CartServiceException(CartServiceExceptionMessages.ALREADY_ADDED);
-
+		if (product.getQuantity() > 10)
+			throw new CartServiceException(CartServiceExceptionMessages.QUANTITY_NOT_ALLOWED);
+		if (productInfo.getMinStockLevel() < product.getQuantity())
+			throw new CartServiceException(CartServiceExceptionMessages.PRODUCT_NOT_AVAILABLE);
 		CartProductDetails cartProductDetails = new CartProductDetails();
 		cartProductDetails.setProductId(product.getProductId());
 		cartProductDetails.setCartProductQuantity(product.getQuantity());
 		cartProductDetails.setCartProductName(productInfo.getProductName());
 		cartProductDetails.setCartProductPrice(productInfo.getPrice());
-
+		cartProductDetails.setAddedAt(LocalDateTime.now());
+		cartProductDetails.setDiscount(productInfo.getDiscount());
+		;
 		final Float subTotal = calculateSubtotal(productInfo.getPrice(), product.getQuantity(),
 				productInfo.getDiscount());
 		cartProductDetails.setSubTotal(subTotal);
@@ -74,10 +81,73 @@ public class CartServiceImpl implements CartService {
 	}
 
 	private Float calculateSubtotal(Float price, Integer quantity, Float discount) {
-	    
-	    Float subtotal = price * quantity * (1 - (discount / 100));
-	    return subtotal;
+
+		Float subtotal = price * quantity * (1 - (discount / 100));
+		return subtotal;
 	}
 
+	@Override
+	public ViewCartResponse viewCart(Long cartId) throws CartServiceException {
+		Optional<Cart> optionalCart = cartRepository.findById(cartId);
+		Cart cart = optionalCart
+				.orElseThrow(() -> new CartServiceException(CartServiceExceptionMessages.CART_NOT_FOUND));
+
+		List<CartProductDetails> cartProducts = cartProductRepository.findByCartCartId(cartId);
+		if (cart.getNoOfProductsInCart() == 0 || cartProducts.isEmpty())
+			throw new CartServiceException(CartServiceExceptionMessages.NO_PRODUCT_IN_CART);
+		ViewCartResponse viewCartResponse = new ViewCartResponse();
+		viewCartResponse.setCartValue(cart.getCartValue());
+		viewCartResponse.setNoOfProductsInCart(cart.getNoOfProductsInCart());
+
+		viewCartResponse.setCartProducts(cartProducts.stream().map(cartProd -> {
+
+			ViewCartProductResponse viewCartProductResponse = new ViewCartProductResponse();
+			viewCartProductResponse.setQuantity(cartProd.getCartProductQuantity());
+			viewCartProductResponse.setSubTotal(cartProd.getSubTotal());
+			viewCartProductResponse.setProductName(cartProd.getCartProductName());
+			viewCartProductResponse.setPrice(cartProd.getCartProductPrice());
+			viewCartProductResponse.setDiscount(cartProd.getDiscount());
+			viewCartProductResponse.setCartProductId(cartProd.getCartProductId());
+			return viewCartProductResponse;
+		}).toList());
+		return viewCartResponse;
+	}
+
+	@Override
+	public void deleteProductFromCart(Long cartId, Long cartProductId) throws CartServiceException {
+		CartProductDetails cartProduct = cartProductRepository.findByCartProductIdAndCartCartId(cartProductId, cartId);
+		if (cartProduct == null)
+			throw new CartServiceException(CartServiceExceptionMessages.PRODUCT_NOT_AVAILABLE_IN_CART);
+		cartProduct.setCart(null);
+		cartProductRepository.delete(cartProduct);
+		Optional<Cart> optCart = cartRepository.findById(cartId);
+		Cart cart = optCart.orElseThrow(() -> new CartServiceException(CartServiceExceptionMessages.CART_NOT_FOUND));
+		cart.setCartValue(cart.getCartValue() - cartProduct.getSubTotal());
+		cart.setNoOfProductsInCart(cart.getNoOfProductsInCart() - 1);
+		cart.setLastModifiedAt(LocalDateTime.now());
+		cartRepository.save(cart);
+	}
+
+	@Override
+	public ViewCartResponse updateCart(Long cartId, Long cartProductId, Integer quantity) throws CartServiceException {
+		CartProductDetails cartProduct = cartProductRepository.findByCartProductIdAndCartCartId(cartProductId, cartId);
+		if (cartProduct == null)
+			throw new CartServiceException(CartServiceExceptionMessages.PRODUCT_NOT_AVAILABLE_IN_CART);
+		Optional<Cart> optCart = cartRepository.findById(cartId);
+		Cart cart = optCart.orElseThrow(() -> new CartServiceException(CartServiceExceptionMessages.CART_NOT_FOUND));
+		
+		if(quantity==0)
+			throw new CartServiceException(CartServiceExceptionMessages.UPDATE_QUANTITY_ZERO);
+			cart.setCartValue(cart.getCartValue() - cartProduct.getSubTotal());
+		final Float subTotal = calculateSubtotal(cartProduct.getCartProductPrice(), quantity,
+				cartProduct.getDiscount());
+		cartProduct.setCartProductQuantity(quantity);
+		cartProduct.setSubTotal(subTotal);
+		cart.setCartValue(cart.getCartValue() + subTotal);
+		
+		cart.setLastModifiedAt(LocalDateTime.now());
+		cartProductRepository.save(cartProduct);
+		return viewCart(cartId);
+	}
 
 }
