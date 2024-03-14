@@ -31,6 +31,7 @@ public class CartProductDetails {
 	private Long productId;
 	private LocalDateTime addedAt;
 	private Float discount;
+	private String cartProductImagePath;
 	@ManyToOne(cascade = CascadeType.ALL)
 	@JoinColumn(name = "cart_id", unique = false)
 	private Cart cart;

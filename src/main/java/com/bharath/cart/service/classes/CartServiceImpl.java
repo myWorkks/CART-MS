@@ -69,6 +69,7 @@ public class CartServiceImpl implements CartService {
 		cartProductDetails.setCartProductPrice(productInfo.getPrice());
 		cartProductDetails.setAddedAt(LocalDateTime.now());
 		cartProductDetails.setDiscount(productInfo.getDiscount());
+		cartProductDetails.setCartProductImagePath(productInfo.getImagePaths().get(0));
 		;
 		final Float subTotal = calculateSubtotal(productInfo.getPrice(), product.getQuantity(),
 				productInfo.getDiscount());
@@ -101,16 +102,23 @@ public class CartServiceImpl implements CartService {
 
 		viewCartResponse.setCartProducts(cartProducts.stream().map(cartProd -> {
 
-			ViewCartProductResponse viewCartProductResponse = new ViewCartProductResponse();
-			viewCartProductResponse.setQuantity(cartProd.getCartProductQuantity());
-			viewCartProductResponse.setSubTotal(cartProd.getSubTotal());
-			viewCartProductResponse.setProductName(cartProd.getCartProductName());
-			viewCartProductResponse.setPrice(cartProd.getCartProductPrice());
-			viewCartProductResponse.setDiscount(cartProd.getDiscount());
-			viewCartProductResponse.setCartProductId(cartProd.getCartProductId());
-			return viewCartProductResponse;
+			return mapToViewCartProductResponse(cartProd);
 		}).toList());
 		return viewCartResponse;
+	}
+
+	private ViewCartProductResponse mapToViewCartProductResponse(CartProductDetails cartProd) {
+		ViewCartProductResponse viewCartProductResponse = new ViewCartProductResponse();
+		viewCartProductResponse.setQuantity(cartProd.getCartProductQuantity());
+		viewCartProductResponse.setSubTotal(cartProd.getSubTotal());
+		viewCartProductResponse.setProductName(cartProd.getCartProductName());
+		viewCartProductResponse.setPrice(cartProd.getCartProductPrice());
+		viewCartProductResponse.setDiscount(cartProd.getDiscount());
+		viewCartProductResponse.setCartProductId(cartProd.getCartProductId());
+		viewCartProductResponse.setProductId(cartProd.getProductId());
+		viewCartProductResponse.setImagePath(cartProd.getCartProductImagePath());
+		return viewCartProductResponse;
+
 	}
 
 	@Override
@@ -135,19 +143,54 @@ public class CartServiceImpl implements CartService {
 			throw new CartServiceException(CartServiceExceptionMessages.PRODUCT_NOT_AVAILABLE_IN_CART);
 		Optional<Cart> optCart = cartRepository.findById(cartId);
 		Cart cart = optCart.orElseThrow(() -> new CartServiceException(CartServiceExceptionMessages.CART_NOT_FOUND));
-		
-		if(quantity==0)
+
+		if (quantity == 0)
 			throw new CartServiceException(CartServiceExceptionMessages.UPDATE_QUANTITY_ZERO);
-			cart.setCartValue(cart.getCartValue() - cartProduct.getSubTotal());
+
+		ViewProductResponse productInfo = productService.viewProduct(cartProduct.getProductId());
+
+		if (productInfo == null)
+			throw new CartServiceException(CartServiceExceptionMessages.PRODUCT_INFO_NOT_AVAILABLE);
+		if (quantity > 10)
+			throw new CartServiceException(CartServiceExceptionMessages.QUANTITY_NOT_ALLOWED);
+		if (productInfo.getMinStockLevel() < quantity)
+			throw new CartServiceException(CartServiceExceptionMessages.PRODUCT_NOT_AVAILABLE);
+		cart.setCartValue(cart.getCartValue() - cartProduct.getSubTotal());
 		final Float subTotal = calculateSubtotal(cartProduct.getCartProductPrice(), quantity,
 				cartProduct.getDiscount());
 		cartProduct.setCartProductQuantity(quantity);
 		cartProduct.setSubTotal(subTotal);
 		cart.setCartValue(cart.getCartValue() + subTotal);
-		
+
 		cart.setLastModifiedAt(LocalDateTime.now());
 		cartProductRepository.save(cartProduct);
 		return viewCart(cartId);
+	}
+
+	@Override
+	public ViewCartProductResponse viewCartProduct(Long cartProductId) throws CartServiceException {
+		Optional<CartProductDetails> optionalCartProduct = cartProductRepository.findById(cartProductId);
+
+		CartProductDetails cartProduct = optionalCartProduct
+				.orElseThrow(() -> new CartServiceException(CartServiceExceptionMessages.CART_PRODUCT_NOT_FOUND));
+
+		return mapToViewCartProductResponse(cartProduct);
+	}
+
+	@Override
+	public List<ViewCartProductResponse> viewCartProductWithIds(List<Long> cartProductIds) throws CartServiceException {
+		List<CartProductDetails> cartProductDetails = cartProductRepository.findAllById(cartProductIds);
+
+		if (cartProductDetails.isEmpty())
+			throw new CartServiceException(CartServiceExceptionMessages.CART_PRODUCT_NOT_FOUND);
+
+		return cartProductDetails.stream().map(cartProduct -> mapToViewCartProductResponse(cartProduct)).toList();
+	}
+
+	@Override
+	public void deleteProductsFromCart(Long cartId, List<Long> cartProductIds) throws CartServiceException {
+		for (Long cartProductId : cartProductIds)
+			deleteProductFromCart(cartId, cartProductId);
 	}
 
 }

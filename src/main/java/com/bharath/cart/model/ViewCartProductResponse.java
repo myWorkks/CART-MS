@@ -14,4 +14,6 @@ public class ViewCartProductResponse {
 	private Float subTotal;
 	private Float discount;
 	private Long cartProductId;
+	private Long productId;
+	private String imagePath;
 }
