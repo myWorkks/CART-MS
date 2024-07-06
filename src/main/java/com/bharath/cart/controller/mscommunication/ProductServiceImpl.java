@@ -16,9 +16,9 @@ import reactor.core.publisher.Mono;
 @Service(value = "productService")
 public class ProductServiceImpl implements ProductService {
 	@Autowired
-	
 	private WebClient.Builder webclient;
-	private static final String PRODUCTSERVICE_URL = "http://inventory-ms";
+	// private static final String PRODUCTSERVICE_URL = "http://inventory-ms";
+	private static final String PRODUCTSERVICE_URL = "http://localhost:1010";
 
 	private static final String VIEW_PRODUCT_END_POINT = "product-view";
 
@@ -26,7 +26,8 @@ public class ProductServiceImpl implements ProductService {
 	public ViewProductResponse viewProduct(Long productId) {
 		return webclient.baseUrl(PRODUCTSERVICE_URL).build().get()
 				.uri(uriBuilder -> uriBuilder.path(VIEW_PRODUCT_END_POINT).queryParam("pid", productId).build())
-				.retrieve().bodyToMono(ViewProductResponse.class).onErrorResume(WebClientResponseException.class, ex -> {
+				.retrieve().bodyToMono(ViewProductResponse.class)
+				.onErrorResume(WebClientResponseException.class, ex -> {
 					String responseCode = String.valueOf(ex.getRawStatusCode());
 					if (responseCode.startsWith("2"))
 						return Mono.empty();

@@ -39,7 +39,7 @@ public class ViewProductResponse {
 
 	private Long addedByUserId;
 
-	
-	private List<String> imagePaths;
+	 
+	private List<AssetViewResponse> files;
 
 }

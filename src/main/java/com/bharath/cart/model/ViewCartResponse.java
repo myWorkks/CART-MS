@@ -12,5 +12,7 @@ public class ViewCartResponse {
 	private Float cartValue;
 	private Integer noOfProductsInCart;
 	private List<ViewCartProductResponse> cartProducts;
+	private PriceSummary priceSummary;
+	
 
 }

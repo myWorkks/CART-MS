@@ -16,7 +16,15 @@ public class CartServiceExceptionHandler {
 		errorInformation.setErrorMessage(exception.getMessage());
 		errorInformation.setOccuredAt(LocalDateTime.now());
 		errorInformation.setErrorCode(HttpStatus.BAD_REQUEST.value());
-		return new ResponseEntity<ErrorInformation>(errorInformation, HttpStatus.BAD_REQUEST);
+		return new ResponseEntity<ErrorInformation>(errorInformation, HttpStatus.OK);
 	}
+	@ExceptionHandler(Exception.class)
+	public ResponseEntity<ErrorInformation> generalException(Exception exception) {
 
+		ErrorInformation errorInformation = new ErrorInformation();
+		errorInformation.setErrorMessage(exception.getMessage());
+		errorInformation.setOccuredAt(LocalDateTime.now());
+		errorInformation.setErrorCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+		return new ResponseEntity<ErrorInformation>(errorInformation, HttpStatus.INTERNAL_SERVER_ERROR);
+	}
 }

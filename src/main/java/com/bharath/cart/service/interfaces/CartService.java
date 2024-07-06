@@ -12,15 +12,17 @@ public void addToCart(AddToCartProductRequest product,Long userId) throws CartSe
 
 public ViewCartResponse viewCart(Long cartId) throws CartServiceException;
 
-public void deleteProductFromCart(Long cartId, Long cartProductId) throws CartServiceException;
+public ViewCartResponse deleteProductFromCart(Long cartId, Long cartProductId) throws CartServiceException;
 
-public ViewCartResponse updateCart(Long cartId, Long cartProductId, Integer quantity) throws CartServiceException;
+public ViewCartResponse updateCart(Long cartId, Long cartProductId, Integer quantity,Boolean isChecked) throws CartServiceException;
 
 public ViewCartProductResponse viewCartProduct(Long cartProductId) throws CartServiceException;
 
 public List<ViewCartProductResponse> viewCartProductWithIds(List<Long> cartProductIds) throws CartServiceException;
 
-public void deleteProductsFromCart(Long cartId, List<Long> cartProductId) throws CartServiceException;
+public ViewCartResponse deleteProductsFromCart(Long cartId, List<Long> cartProductId) throws CartServiceException;
+
+public ViewCartResponse updateAllCartProducts(Long cartId, Boolean isChecked) throws CartServiceException;
 
 
 }

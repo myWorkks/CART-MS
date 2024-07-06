@@ -16,4 +16,5 @@ public class ViewCartProductResponse {
 	private Long cartProductId;
 	private Long productId;
 	private String imagePath;
+	private Boolean isChecked;
 }

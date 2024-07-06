@@ -18,7 +18,6 @@ import lombok.ToString;
 @Table
 @Getter
 @Setter
-
 @ToString
 public class CartProductDetails {
 	@Id
@@ -32,6 +31,7 @@ public class CartProductDetails {
 	private LocalDateTime addedAt;
 	private Float discount;
 	private String cartProductImagePath;
+	private Boolean isChecked;
 	@ManyToOne(cascade = CascadeType.ALL)
 	@JoinColumn(name = "cart_id", unique = false)
 	private Cart cart;
